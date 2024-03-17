@@ -1,3 +1,4 @@
 /bin/*.exe
 /.vscode/
 *.o
+.gdb_history
