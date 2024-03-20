@@ -9,11 +9,11 @@ section .data
     errorFilePathLen equ $-errorFilePath
 
     bufferSize equ 1024      ;1024 for the moment to be modified in the future
-    file db "./Prog/ProgExample.cly"
 
 
 section .bss
     buffer resb bufferSize
+    filePath resb 1           ;pointer to the filepath
 
 section .text
 _start:
@@ -24,6 +24,7 @@ _start:
     syscall
 
     call _getArg
+    mov [filePath], rax     ;store argv[1] in to filePath
     call _openFile
 
     ;check if the file is correctly opened
@@ -32,6 +33,7 @@ _start:
 
     call _readFile
     call _closeFile   
+
 
     jmp _exit
 
@@ -44,7 +46,7 @@ _openFile:
     mov rbp, rsp
 
     mov rax, 2           
-    mov rdi, file        ;pointer to the filename
+    mov rdi, [filePath]  
     mov rsi, 0           ;mode read-only
     syscall    
 

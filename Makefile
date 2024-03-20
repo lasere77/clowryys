@@ -15,7 +15,7 @@ debug: bin/$(EXEC)
 	gdb ./bin/$(EXEC)
 
 run: bin/$(EXEC)
-	./bin/$(EXEC) test
+	./bin/$(EXEC) ./Prog/ProgExample.cly
 
 clean:
 	rm *.o
