@@ -6,7 +6,7 @@ start: assembledSource linkingObject run clean
 gdb: assembledSource linkingObject debug clean
 
 assembledSource: src/Main.asm
-	$(CXX) -f elf64 src/*.asm -o Main.o 
+	$(CXX) -f elf64 src/Main.asm -o Main.o 
 
 linkingObject: Main.o
 	ld Main.o -o ./bin/$(EXEC)

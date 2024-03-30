@@ -1,6 +1,8 @@
 bits 64
 global _start
 
+%include "./src/File.asm"
+
 section .data
     hello db "start cloryys...", 10, 0
     helloLen equ $-hello
@@ -13,7 +15,8 @@ section .data
 
 section .bss
     buffer resb bufferSize
-    filePath resb 1           ;pointer to the filepath
+    filePath resq 1           ;pointer to the filepath, 8 byte was allocated
+    currentLine resb 6        ;memorizes the instruction just read
 
 section .text
 _start:
@@ -30,66 +33,52 @@ _start:
     ;check if the file is correctly opened
     cmp rax, 0
     jl _errorFilePath
-
     call _readFile
+    call _getLine
+
     call _closeFile   
 
 
     jmp _exit
 
+_getLineStoreChar:
+    mov byte [rsi], al
+    
+    inc rsi
+    inc rdi
+    jmp _getLineLoop
+
+_getLineLoop:
+    mov al, byte [rdi]
+    
+    cmp al, 10      ;"\n"
+    je _quit
+    
+    cmp al, 0x20    ;" "
+    jne _getLineStoreChar
+    
+    inc rdi
+
+    jmp _getLineLoop
+
+_getLine:
+    push rbp
+    mov rbp, rsp
+
+    mov rdi, buffer
+    mov rsi, currentLine
+    call _getLineLoop
+
+    mov rsp, rbp
+    pop rbp
+    ret
+
 _getArg:
     mov rax, [rsp + 24]
     ret
 
-_openFile:
-    push rbp
-    mov rbp, rsp
-
-    mov rax, 2           
-    mov rdi, [filePath]  
-    mov rsi, 0           ;mode read-only
-    syscall    
-
-    mov rsp, rbp
-    pop rbp
+_quit:
     ret
-
-_readFile:
-    push rbp
-    mov rbp, rsp
-
-    mov rdi, rax         ;give the descriptor file
-    mov rax, 0
-    mov rsi, buffer      ;buffer to read into
-    mov rdx, bufferSize  ;number of bytes to read
-    syscall
-
-    mov rsp, rbp
-    pop rbp
-    ret
-
-
-_closeFile:
-    push rbp
-    mov rbp, rsp
-
-    ;close File 
-    mov rax, 3
-    mov rdi, 0
-    syscall
-
-    mov rsp, rbp
-    pop rbp
-    ret
-
-_errorFilePath:
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, errorFilePath
-    mov rdx, errorFilePathLen
-    syscall
-
-    jmp _exit
 
 
 _exit:
