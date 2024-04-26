@@ -69,9 +69,9 @@ _mainLoop:
     ;semi finishes taking over after finalizing _storeCurrentLine ----------------------
     ;get nb of information (instruction/opéran/opérande)
     push rax
-    xor rax, rax
     lea rdi, [rsp + 8]
     mov rsi, r8
+    xor rax, rax
     xor r9, r9
     xor r8, r8
     call _getNbCurrentLineArg
@@ -117,7 +117,7 @@ _hidenChar:
 
     mov al, [rdi + r9]
 
-    cmp al, 32
+    cmp al, 32          ;check if is space
     je _getNbCurrentLineArg
 
     inc r9
