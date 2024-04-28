@@ -9,10 +9,10 @@ _endOfLine:
 _getIfIsEssentialSpace:
     inc r9          ;pass to the next char after this condition
 
-    cmp qword [rsp + 8], 1
+    cmp qword [rbp - 8], 1
     jne _storeCurrentLineLoop
 
-    mov qword [rsp + 8], 0          ;set [rsp + 8] to 0 to tell do not store the next char if it space
+    mov qword [rbp - 8], 0          ;set [rbp - 8] to 0(false) to tell do not store the next char if it space
     mov [rsi + r8], byte al         ;write the space on currentLine
     inc r8
 
@@ -36,11 +36,14 @@ _storeCurrentLineLoop:
     cmp al, 32                  ;check if char is space
     je _getIfIsEssentialSpace
 
+    cmp al, 44                  ;check if char is comma
+    je _replaceComma
+
     mov [rsi + r8], byte al
 
     inc r8
     inc r9
-    mov qword [rsp + 8], 1      ;set [rsp + 8] to 1 to tell i can store space
+    mov qword [rbp - 8], 1      ;set [rbp - 8] to (true)1 to tell i can store space
     jmp _storeCurrentLineLoop
 
 ;return buffer - currentLine
@@ -48,14 +51,14 @@ _storeCurrentLineLoop:
 ;rsi = buffer
 ;r8  = index of currentLine
 ;r9  = index of buffer
-;VAR = if [rsp + 8] == 0 store space else do not store it
-;to store a space we need VAR/[rsp + 8] == 0
+;VAR = if [rbp - 8] == (true)1 store space else do not store it
+;to store a space we need VAR/[rbp - 8] == (true)1
 _storeCurrentLine: 
     push rbp
     mov rbp, rsp
     
-    sub rsp, 8                 ;allocate 8 bytes for stack alignment
-    mov qword [rsp + 8], 0
+    sub rsp, 8                 ;allocate 8 bytes for check is space is needed in the buffer, and 8 for stack alignment
+    mov qword [rbp - 8], 0
 
     xor r8, r8
     xor r9, r9
@@ -97,3 +100,14 @@ _hideUnnecessaryCharFromBuffer:
 
     inc rdi
     jmp _hideUnnecessaryCharFromBuffer
+
+_replaceComma:
+    inc r9
+
+    cmp qword [rbp - 8], 1
+    jne _storeCurrentLineLoop
+
+    mov qword [rbp - 8], 0      ;set [rbp - 8] to (false)0 to tell hi can't store space
+    mov byte [rsi + r8], 32     ;replace comma with space if is needed
+    inc r8
+    jmp _storeCurrentLineLoop

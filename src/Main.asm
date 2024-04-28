@@ -44,12 +44,6 @@ _start:
     sub rsp, currentLineSize
     lea rax, [rsp]
 
-    ;clean currenteline buffer(set all byte of the buuferto 0)
-    xor r8, r8
-    mov rdi, rax
-    mov rsi, currentLineSize
-    call _cleanBuffer
-
     mov rax, buffer
     jmp _mainLoop
 
@@ -60,46 +54,34 @@ _mainLoop:
     cmp r9, 0      ;check if it end of file with the null byte
     je _exit
 
-
-    mov rdi, rax
-    lea rsi, [rsp]
-    call _storeCurrentLine
-
-
-    ;semi finishes taking over after finalizing _storeCurrentLine ----------------------
-    ;get nb of information (instruction/opéran/opérande)
-    push rax
-    lea rdi, [rsp + 8]
-    mov rsi, r8
-    xor rax, rax
-    xor r9, r9
-    xor r8, r8
-    call _getNbCurrentLineArg
-    pop rax
-
-;-------------------------------------
- 
-
-    ;get instructon
-    ;get opéran
-    ;get opérande
-    ;transcode currentLine
-
-
-;------------------------------------
-    
-    ;wirte currentLineInFile
-
-    ;clean currentLine
+    ;clean currenteline buffer (set all bytes of the buffer to 0)
     xor r8, r8
     lea rdi, [rsp]
     mov rsi, currentLineSize
     call _cleanBuffer
 
+    ;store the current line without storing unnecessary characters
+    mov rdi, rax
+    lea rsi, [rsp]
+    call _storeCurrentLine
+
+
+    ;get nb of information (instruction/opéran/opérande)
+    push rax
+    lea rdi, [rsp + 8]
+    mov rsi, r8
+    call _getNbCurrentLineArg
+    pop rax
+
+    ;transcode currentLine
+    ;wirte currentLineInFile
+
     jmp _mainLoop
 
 
 ;set all bytes of the buffer to 0
+;rdi = buffer to clean
+;rsi = lenght of buffer (8*x !!!)
 _cleanBuffer:
     cmp r8, rsi
     je _quit
@@ -118,38 +100,43 @@ _hidenChar:
     mov al, [rdi + r9]
 
     cmp al, 32          ;check if is space
-    je _getNbCurrentLineArg
+    je _getNbCurrentLineArgLoop
 
     inc r9
     jmp _hidenChar
-
-_itComma:
-    inc r9
-    jmp _getNbCurrentLineArg
 
 _itChar:
-    mov al, [rdi + r9]
-    cmp al, 44
-    je _itComma
     inc r8
     jmp _hidenChar
+
 
 ;rdi = currentLine
 ;rsi = nb of char was stored in currentLine
 ;r9  = index of currentLine
 ;r8  = nb of arg
-_getNbCurrentLineArg:
+_getNbCurrentLineArgLoop:
     cmp r9, rsi
     je _quit
 
     mov al, [rdi + r9]
     cmp al, 32
     jne _itChar
-    
 
     inc r9
-    jmp _getNbCurrentLineArg
+    jmp _getNbCurrentLineArgLoop
 
+_getNbCurrentLineArg:
+    push rbp
+    mov rbp, rsp
+
+    xor r8, r8
+    xor r9, r9
+    xor rax, rax
+    call _getNbCurrentLineArgLoop
+
+    mov rsp, rbp
+    pop rbp
+    ret
 
 _quit:
     ret
@@ -160,6 +147,8 @@ _exitError:
     syscall
 
 _exit:
+    add rsp, currentLineSize
+
     mov rax, 60
     xor rdi, rdi
     syscall
