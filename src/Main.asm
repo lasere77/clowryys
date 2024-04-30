@@ -3,6 +3,7 @@ global _start
 
 %include "./src/File.asm"
 %include "./src/ReadLine.asm"
+%include "./src/GetNbChar.asm"
 
 section .data
     hello db "start cloryys...", 10, 0
@@ -16,10 +17,10 @@ section .data
 
     bufferSize equ 1024      ;1024 for the moment to be modified in the future
     currentLineSize equ 16
+    nbOfCharSize equ 2*4+8   ;2*4 for the array and add 8 to align the stack
 
 section .bss
     buffer resb bufferSize
-    ;instruction resb 6                     ;memorizes the instruction just read
 
 section .text
 _start:
@@ -43,6 +44,8 @@ _start:
     ;stores the line who need to transcode in to binary, 16 byte was allocated
     sub rsp, currentLineSize
     lea rax, [rsp]
+    ;allocate memory to store nb of arg are in currentLine and nb of char for each arg
+    sub rsp, nbOfCharSize
 
     mov rax, buffer
     jmp _mainLoop
@@ -54,21 +57,21 @@ _mainLoop:
     cmp r9, 0      ;check if it end of file with the null byte
     je _exit
 
-    ;clean currenteline buffer (set all bytes of the buffer to 0)
+    ;clean the tow buffer currentLine and nbOfCharSize
     xor r8, r8
     lea rdi, [rsp]
-    mov rsi, currentLineSize
+    mov rsi, currentLineSize + nbOfCharSize
     call _cleanBuffer
 
     ;store the current line without storing unnecessary characters
     mov rdi, rax
-    lea rsi, [rsp]
+    lea rsi, [rsp + 16]
     call _storeCurrentLine
 
 
     ;get nb of information (instruction/opéran/opérande)
     push rax
-    lea rdi, [rsp + 8]
+    lea rdi, [rsp + 8 + 16]
     mov rsi, r8
     call _getNbCurrentLineArg
     pop rax
@@ -90,53 +93,6 @@ _cleanBuffer:
 
     add r8, 8
     jmp _cleanBuffer
-
-
-
-_hidenChar:
-    cmp r9, rsi
-    je _quit
-
-    mov al, [rdi + r9]
-
-    cmp al, 32          ;check if is space
-    je _getNbCurrentLineArgLoop
-
-    inc r9
-    jmp _hidenChar
-
-_itChar:
-    inc r8
-    jmp _hidenChar
-
-
-;rdi = currentLine
-;rsi = nb of char was stored in currentLine
-;r9  = index of currentLine
-;r8  = nb of arg
-_getNbCurrentLineArgLoop:
-    cmp r9, rsi
-    je _quit
-
-    mov al, [rdi + r9]
-    cmp al, 32
-    jne _itChar
-
-    inc r9
-    jmp _getNbCurrentLineArgLoop
-
-_getNbCurrentLineArg:
-    push rbp
-    mov rbp, rsp
-
-    xor r8, r8
-    xor r9, r9
-    xor rax, rax
-    call _getNbCurrentLineArgLoop
-
-    mov rsp, rbp
-    pop rbp
-    ret
 
 _quit:
     ret

@@ -47,8 +47,8 @@ _storeCurrentLineLoop:
     jmp _storeCurrentLineLoop
 
 ;return buffer - currentLine
-;rdi = buffer to store CurrentLine
-;rsi = buffer
+;rdi = buffer 
+;rsi = buffer to store CurrentLine
 ;r8  = index of currentLine
 ;r9  = index of buffer
 ;VAR = if [rbp - 8] == (true)1 store space else do not store it
