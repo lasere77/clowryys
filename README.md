@@ -52,14 +52,6 @@ condition:
 
     jne 
 
-    ja ;unsigned
-
-    jb ;unsigned
-
-    jae ;unsigned
-
-    jbe ;unsigned
-
     jg ;signed
     
     jl ;signed
@@ -94,10 +86,10 @@ im is an instuction to put nomber on A but this number is in [0;63] interval
 the conditions will be interpreted according to the register R  
 je equal to 0  
 jne not equal to 0
-jae/jge above or equal 0  
-jbe/jle below or equal 0  
-ja/jg above 0  
-jb/jl below 0  
+jge above or equal 0  
+jle below or equal 0  
+jg above 0  
+jl below 0  
 always true  
 nerver false  
 the nop instruction does nothing  
