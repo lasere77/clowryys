@@ -1,3 +1,17 @@
-mov a, r
-xor a, a
-im 42
+;make xor instruction 
+im 15
+mov a, c
+im 19
+mov a, d
+nor
+mov r, x
+and
+mov r, x
+mov f, d
+mov x, c
+or
+mov r, c
+im 0
+mov a, d
+nor
+;the result is in the register r
