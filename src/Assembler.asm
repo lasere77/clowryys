@@ -60,7 +60,6 @@ section .data
 section .text
 _assemblyImInstruction:
     mov rax, "00XXXXXX"
-    mov r8, 1
     ret
 _assemblyOrInstruction:
     mov rax, "01000000"
@@ -82,7 +81,6 @@ _assemblySubInstruction:
     ret
 _assemblyMovInstruction:
     mov rax, "10XXXXXX"
-    mov r8, 1
     ret
 _assemblyNeverInstruction:
     mov rax, "11000000"
@@ -241,7 +239,6 @@ _instructionNotExist:
 ;rax return the assembly line
 ;r8 second return value if r8 = 0 the entire line is assembled otherwise only the instruction is assembled
 _assemblyInstruction:
-    xor r8, r8
     ;switch statment
     mov rcx, rdi
     sub rcx, 2                      ;sub the value of the start (2) to set the firt index at 0

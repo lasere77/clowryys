@@ -1,7 +1,7 @@
 section .text
 
 _endOfLine:                 
-    inc rdi                 ;hide \n from buffer
+    inc r9                 ;hide \n from buffer
     ret
 
 
@@ -101,7 +101,7 @@ _hideUnnecessaryCharFromBuffer:
     cmp al, 0              ;check if it end of line with the null byte
     je _endOfLine
 
-    inc rdi
+    inc r9
     jmp _hideUnnecessaryCharFromBuffer
 
 _replaceComma:

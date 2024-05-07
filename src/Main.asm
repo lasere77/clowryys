@@ -77,8 +77,6 @@ _mainLoop:
     ;if r8 = 0 nothing are store so you can passe to the next line
     cmp r8, 0
     je _mainLoop
-    ;test r8, r8
-    ;jz _mainLoop
 
     ;get nb of information (instruction/opéran/opérande)
     lea rdi, [rsp + 16]
@@ -93,7 +91,7 @@ _mainLoop:
     cmp rax, -1
     je _UnknownInstruction
 
-
+    ;check if only the instruction assembly is required if this is true, write it to the binary file otherwise assemble the other arg in currentLine 
     cmp byte [rsp + 8], 1
     je _writeBinary    
     cmp byte [rsp + 8], 2
@@ -104,11 +102,11 @@ _mainLoop:
     jmp _mainLoop
 
 _assemblyLineWithTowArg:
-    jmp _mainLoop
+    jmp _writeBinary
 
 
 _assemblyLineWithThreeArg:
-    jmp _mainLoop
+    jmp _writeBinary
 
 _writeBinary:
     jmp _mainLoop
