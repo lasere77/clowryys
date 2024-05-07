@@ -93,9 +93,12 @@ _overflow:
     ret
 
 _hideUnnecessaryCharFromBuffer:
-    mov byte al, [rdi]
+    mov byte al, [rdi + r9]
 
     cmp al, 10             ;check if it end of line with \n
+    je _endOfLine
+
+    cmp al, 0              ;check if it end of line with the null byte
     je _endOfLine
 
     inc rdi

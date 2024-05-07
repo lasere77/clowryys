@@ -4,8 +4,10 @@ global _start
 %include "./src/File.asm"
 %include "./src/ReadLine.asm"
 %include "./src/GetNbChar.asm"
+%include "./src/Assembler.asm"
 
 section .data
+    ;message
     hello db "start cloryys...", 10, 0
     helloLen equ $-hello
 
@@ -15,6 +17,10 @@ section .data
     warnOverflow db "warn: an overflow has been avoided", 10, 0
     warnOverflowLen equ $-warnOverflow
 
+    errorUnknownInstruction db "error: instruction not referenced, it doesn't exist ", 10, 0
+    errorUnknownInstructionLen equ $-errorUnknownInstruction
+
+    ;const
     bufferSize equ 1024      ;1024 for the moment to be modified in the future
     currentLineSize equ 16
     nbOfCharSize equ 2*4+8   ;2*4 for the array and add 8 to align the stack
@@ -47,13 +53,13 @@ _start:
     ;allocate memory to store nb of arg are in currentLine and nb of char for each arg
     sub rsp, nbOfCharSize
 
-    mov rax, buffer
+    mov r15, buffer
     jmp _mainLoop
 
 
 
 _mainLoop:
-    mov r9, [rax]
+    mov r9, [r15]
     cmp r9, 0      ;check if it end of file with the null byte
     je _exit
 
@@ -64,22 +70,49 @@ _mainLoop:
     call _cleanBuffer
 
     ;store the current line without storing unnecessary characters
-    mov rdi, rax
+    mov rdi, r15
     lea rsi, [rsp + 16]
     call _storeCurrentLine
-
+    mov r15, rax
+    ;if r8 = 0 nothing are store so you can passe to the next line
+    cmp r8, 0
+    je _mainLoop
+    ;test r8, r8
+    ;jz _mainLoop
 
     ;get nb of information (instruction/opéran/opérande)
-    push rax
-    lea rdi, [rsp + 8 + 16]
+    lea rdi, [rsp + 16]
     mov rsi, r8
+    lea rdx, [rsp + 8]
     call _getNbCurrentLineArg
-    pop rax
 
-    ;transcode currentLine
-    ;wirte currentLineInFile
+    ;transcode the instruction of currentLine
+    movzx rdi, word [rsp + 8 + 2]          ;gives the number of characters in the current instruction
+    call _assemblyInstruction
+    ;check if the current line contains the correct instruction if not, exit the program with error code
+    cmp rax, -1
+    je _UnknownInstruction
+
+
+    cmp byte [rsp + 8], 1
+    je _writeBinary    
+    cmp byte [rsp + 8], 2
+    je _assemblyLineWithTowArg
+    cmp byte [rsp + 8], 3
+    je _assemblyLineWithThreeArg
 
     jmp _mainLoop
+
+_assemblyLineWithTowArg:
+    jmp _mainLoop
+
+
+_assemblyLineWithThreeArg:
+    jmp _mainLoop
+
+_writeBinary:
+    jmp _mainLoop
+
 
 
 ;set all bytes of the buffer to 0
@@ -97,13 +130,31 @@ _cleanBuffer:
 _quit:
     ret
 
+_UnknownInstruction:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, errorUnknownInstruction
+    mov rdx, errorUnknownInstructionLen
+    syscall
+
+    xor rdi, rdi
+    jmp _exitError
+
+
+;attention !!! be sure to set the right value at rdi !!! 
+;rdi = nb of space has been allocated for the function, and its contents
 _exitError:
+    ;remove local var, save of rip/rsp...
+    add rsp, rdi
+    ;remove local var of the main fonction
+    add rsp, currentLineSize + nbOfCharSize
+
     mov rax, 60
     mov rdi, 1
     syscall
 
 _exit:
-    add rsp, currentLineSize
+    add rsp, currentLineSize + nbOfCharSize
 
     mov rax, 60
     xor rdi, rdi

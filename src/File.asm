@@ -31,4 +31,7 @@ _errorFilePath:
     mov rdx, errorFilePathLen
     syscall
 
-    jmp _exitError
+    ;quit prog!!!
+    mov rax, 60
+    mov rdi, 1
+    syscall
