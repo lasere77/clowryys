@@ -17,8 +17,11 @@ section .data
     warnOverflow db "warn: an overflow has been avoided", 10, 0
     warnOverflowLen equ $-warnOverflow
 
-    errorUnknownInstruction db "error: instruction not referenced, it doesn't exist ", 10, 0
+    errorUnknownInstruction db "error: instruction not referenced, it doesn't exist", 10, 0
     errorUnknownInstructionLen equ $-errorUnknownInstruction
+
+    errorNbTooLarge db "error: the nomber you give to the im instruction is too large, please check the nb is an integer in the interval [0;63]", 10, 0
+    errorNbTooLargelen equ $-errorNbTooLarge
 
     ;const
     bufferSize equ 1024      ;1024 for the moment to be modified in the future
@@ -93,7 +96,7 @@ _mainLoop:
 
     ;check if only the instruction assembly is required if this is true, write it to the binary file otherwise assemble the other arg in currentLine 
     cmp byte [rsp + 8], 1
-    je _writeBinary    
+    je _writeBinary
     cmp byte [rsp + 8], 2
     je _assemblyLineWithTowArg
     cmp byte [rsp + 8], 3
@@ -102,7 +105,12 @@ _mainLoop:
     jmp _mainLoop
 
 _assemblyLineWithTowArg:
-    jmp _writeBinary
+    ;please do swith statment if you have more instruction here
+    cmp r8, IDIm
+    je _assemblyImArg
+
+    ;exit with an error if the instruction was not referenced, the program should have aborted before this happened...
+    jmp _UnknownInstruction
 
 
 _assemblyLineWithThreeArg:

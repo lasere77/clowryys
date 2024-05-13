@@ -1,5 +1,5 @@
 ;make xor instruction 
-im 15
+im 25
 mov a, c
 im 19
 mov a, d
