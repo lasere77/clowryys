@@ -2,18 +2,34 @@ section .text
 
 _endOfLine:                 
     inc r9                 ;hide \n from buffer
-    ret
-
+    ret 
 
 ;this label is there to avoid storing unnecessary space
 _getIfIsEssentialSpace:
     inc r9          ;pass to the next char after this condition
+    
+    mov byte al, [rdi + r9]     ;update al
 
+    ;check whether space needs to be stored
     cmp qword [rbp - 8], 1
     jne _storeCurrentLineLoop
+    
+    ;all of this condition is for the next char
+    cmp al, 0                   ;check if it end of line with the null byte
+    je _quit
 
+    cmp al, 10                  ;check if it end of line with \n
+    je _endOfLine
+    
+    cmp al, 32                  ;check if the next char is space
+    je _getIfIsEssentialSpace
+
+    cmp al, 59                  ;check if the next char is comma
+    je _hideUnnecessaryCharFromBuffer
+
+    ;store space
     mov qword [rbp - 8], 0          ;set [rbp - 8] to 0(false) to tell do not store the next char if it space
-    mov [rsi + r8], byte al         ;write the space on currentLine
+    mov [rsi + r8], byte 32         ;write the space on currentLine
     inc r8
 
     jmp _storeCurrentLineLoop
