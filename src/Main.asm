@@ -5,6 +5,7 @@ global _start
 %include "./src/ReadLine.asm"
 %include "./src/GetNbChar.asm"
 %include "./src/Assembler.asm"
+%include "./src/RefAssembler.asm"
 
 section .data
     ;message
@@ -23,10 +24,14 @@ section .data
     errorNbTooLarge db "error: the nomber you give to the im instruction is too large, please check the nb is an integer in the interval [0;63]", 10, 0
     errorNbTooLargelen equ $-errorNbTooLarge
 
+    errorInvalidReg db "error: invalid register", 10, 0
+    errorInvalidRegLen equ $-errorInvalidReg
+
     ;const
     bufferSize equ 1024      ;1024 for the moment to be modified in the future
     currentLineSize equ 16
     nbOfCharSize equ 2*4+8   ;2*4 for the array and add 8 to align the stack
+    assemblyArgSize equ 8 
 
 section .bss
     buffer resb bufferSize
@@ -114,6 +119,9 @@ _assemblyLineWithTowArg:
 
 
 _assemblyLineWithThreeArg:
+    cmp r8, IDMov
+    je _assemblyMovArg
+
     jmp _writeBinary
 
 _writeBinary:

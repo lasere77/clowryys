@@ -5,148 +5,8 @@ section .data
         dq _instructionWithFourChar
         dq _instructionWithFiveChar
         dq _instructionWithSixChar
-    ;instruction
-    imInstruction db "im", 0
-    imInstructionLen equ $-imInstruction
-
-    orInstruction db "or", 0
-    orInstructionLen equ $-orInstruction
-
-    nandInstruction db "nand", 0
-    nandInstructionLen equ $-nandInstruction
-
-    norInstruction db "nor", 0
-    norInstructionLen equ $-norInstruction
-
-    andInstruction db "and", 0
-    andInstructionLen equ $-andInstruction
-
-    addInstruction db "add", 0
-    addInstructionLen equ $-addInstruction
-
-    subInstruction db "sub", 0
-    subInstructionLen equ $-subInstruction
-
-    movInstruction db "mov", 0
-    movInstructionLen equ $-movInstruction
-
-    neverInstruction db "never", 0
-    neverInstructionLen equ $-neverInstruction
-
-    jeInstruction db "je", 0
-    jeInstructionLen equ $-jeInstruction
-
-    jgInstruction db "jg", 0
-    jgInstructionLen equ $-jgInstruction
-
-    jgeInstruction db "jge", 0
-    jgeInstructionLen equ $-jgeInstruction
-
-    alwaysInstruction db "always", 0
-    alwaysInstructionLen equ $-alwaysInstruction
-
-    jneInstruction db "jne", 0
-    jneInstructionLen equ $-jneInstruction
-
-    jleInstruction db "jle", 0
-    jleInstructionLen equ $-jleInstruction
-
-    jlInstruction db "jl", 0
-    jlInstructionLen equ $-jlInstruction
-
-    nopInstruction db "nop", 0
-    nopInstructionLen equ $-nopInstruction
-
-    ;const ID instruction
-    IDIm equ 0
-    IDOr equ 1
-    IDJe equ 2
-    IDJg equ 3
-    IDJl equ 4
-    IDNor equ 5
-    IDAnd equ 6
-    IDAdd equ 7
-    IDSub equ 8
-    IDMov equ 9
-    IDJge equ 10
-    IDJne equ 11
-    IDJle equ 12
-    IDNop equ 13
-    IDNand equ 14
-    IDNever equ 15
-    IDAlways equ 16
 
 section .text
-_assemblyImInstruction:
-    mov rax, "00XXXXXX"
-    mov r8, IDIm
-    ret
-_assemblyOrInstruction:
-    mov rax, "01000000"
-    mov r8, IDOr
-    ret
-_assemblyNandInstruction:
-    mov rax, "01000001"
-    mov r8, IDNand
-    ret
-_assemblyNorInstruction:
-    mov rax, "01000010"
-    mov r8, IDNor
-    ret
-_assemblyAndInstruction:
-    mov rax, "01000011"
-    mov r8, IDAnd
-    ret
-_assemblyAddInstruction:
-    mov rax, "01000100"
-    mov r8, IDAdd
-    ret
-_assemblySubInstruction:
-    mov rax, "01000101"
-    mov r8, IDSub
-    ret
-_assemblyMovInstruction:
-    mov rax, "10XXXXXX"
-    mov r8, IDMov
-    ret
-_assemblyNeverInstruction:
-    mov rax, "11000000"
-    mov r8, IDNever
-    ret
-_assemblyJeInstruction:
-    mov rax, "11000001"
-    mov r8, IDJe
-    ret
-_assemblyJgInstruction:
-    mov rax, "11000111"
-    mov r8, IDJg
-    ret
-_assemblyJgeInstruction:
-    mov rax, "11000110"
-    mov r8, IDJge
-    ret
-_assemblyAlwaysInstruction:
-    mov rax, "11000100"
-    mov r8, IDAlways
-    ret
-_assemblyJneInstruction:
-    mov rax, "11000101"
-    mov r8, IDJne
-    ret
-_assemblyJleInstruction:
-    mov rax, "11000011"
-    mov r8, IDJle
-    ret
-_assemblyJlInstruction:
-    mov rax, "11000010"
-    mov r8, IDJl
-    ret
-_assemblyNopInstruction:
-    mov rax, "11000000"
-    mov r8, IDNop
-    ret
-
-;---------------------------------------------
 _instructionWithTowChar:       ;compares with 2 character instructions
     lea rdi, [rsp + 16 + 8]
     lea rsi, [imInstruction]
@@ -291,6 +151,9 @@ _assemblyInstruction:
     jmp [jmp_table + rcx * 8]
 
 
+
+;------------------------------------------------------------------
+
 _assemblyImArg:
     push rbp
     mov rbp, rsp
@@ -307,13 +170,13 @@ _assemblyImArg:
     ja _errorNbTooLarge
 
     ;allocate memore to store the binary in ascii 8 byte for the binary and 8 byte for the allignement 
-    sub rsp, 16
+    sub rsp, assemblyArgSize
     lea rdi, [rsp]
-    mov rsi, 16
+    mov rsi, assemblyArgSize
     xor r8, r8
     call _cleanBuffer
 
-    lea rdi, [rsp + 8]
+    lea rdi, [rsp]
     mov rsi, 128                ;128 and not 32 because im mode have 00 for the tow MSB,U1 = 1; Un+1 = Un * 2; n = nb of bits you want to write, Un what you need to put in rsi
     call _nbToBin
 
@@ -321,7 +184,7 @@ _assemblyImArg:
     mov rax, [rdi - 8]
 
     ;free the allocated memory
-    add rsp, 16
+    add rsp, assemblyArgSize
 
     mov rsp, rbp
     pop rbp
@@ -394,4 +257,74 @@ _errorNbTooLarge:
     
     ;give the first arg of _exitError
     mov rdi, 8
+    jmp _exitError
+
+
+;------------------------------------------------------------------
+
+
+_assemblyMovArg:
+    push rbp
+    mov rbp, rsp
+
+    ;check that the length of both arguments is correct 
+    cmp word [rbp + 16 + 4], 1
+    jne _argLengthError
+    cmp word [rbp + 16 + 6], 1
+    jne _argLengthError
+
+    sub rsp, assemblyArgSize            ;allocate 8 bytes to store assembled arguments
+    mov qword [rsp], 0                  ;set the buffer to 0 
+
+    lea rsi, [rsp]                      ;set rsi the pointer for the buffer
+
+    ;set Mov mode with rax
+    mov word [rsi], ax                  ;mov byte [rsi], "1", inc rsi, mov byte [rsi], "0"
+    inc rsi
+
+    ;rdi containe currentLine without the instruction but you need to remove the space
+    inc rdi                             ;remove the space
+    add rsi, 3                          ;to write the firt arg on the least significant bits
+    call _assemblyMovArgReg
+
+    ;assemble the seconde register(destination)
+    inc rdi                             ;remove the space
+    sub rsi, 6                          ;write the second argument in the right place, -3 to avoid writing over the first argument, and again -3 to write over it's 3 bit.
+    call _assemblyMovArgReg
+
+    mov rax, [rsi]
+
+    add rsp, assemblyArgSize            ;free the allocated memory
+
+    mov rsp, rbp
+    pop rbp
+    jmp _writeBinary
+
+
+_assemblyMovArgReg:
+    mov al, byte [rdi]
+    
+    inc rdi         ;pass this register
+    
+    cmp al, 'a'
+    je _assemblyRegA
+    cmp al, 'c'
+    je _assemblyRegC
+    cmp al, 'd'
+    je _assemblyRegD
+    cmp al, 'r'
+    je _assemblyRegR
+    cmp al, 'f'
+    je _assemblyRegF
+    cmp al, 'x'
+    je _assemblyRegX
+
+_argLengthError:
+    mov rax, 1 
+    mov rdi, 1 
+    mov rsi, errorInvalidReg 
+    mov rdx, errorInvalidRegLen 
+    syscall
+
+    mov rdi, 16                         ;save of rbp and rdi
     jmp _exitError
