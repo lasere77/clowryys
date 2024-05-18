@@ -1,17 +1,21 @@
 ;make xor instruction 
 im 25
-mov a, c
+mov c, a
 im 19
-mov a, d
+mov d, a
+
 nor
-mov r, x
+mov x, r
+
 and
-mov r, x
-mov f, d
-mov x, c
+mov f, r
+
+mov d, f
+mov c, x
 or
-mov r, c
+
+mov c, r
 im 0
-mov a, d
+mov d, a
 nor
 ;the result is in the register r
