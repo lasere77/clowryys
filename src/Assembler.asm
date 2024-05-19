@@ -169,12 +169,11 @@ _assemblyImArg:
     cmp rax, 63
     ja _errorNbTooLarge
 
-    ;allocate memore to store the binary in ascii 8 byte for the binary and 8 byte for the allignement 
+    ;allocate memore to store the binary in ascii 8 byte for the binary and 8 byte for the allignement and fill buffer with "0"
     sub rsp, assemblyArgSize
     lea rdi, [rsp]
-    mov rsi, assemblyArgSize
     xor r8, r8
-    call _cleanBuffer
+    call _fillBufferZero
 
     lea rdi, [rsp]
     mov rsi, 128                ;128 and not 32 because im mode have 00 for the tow MSB,U1 = 1; Un+1 = Un * 2; n = nb of bits you want to write, Un what you need to put in rsi
@@ -190,6 +189,15 @@ _assemblyImArg:
     pop rbp
     jmp _writeBinary
 
+
+_fillBufferZero:
+    cmp r8, assemblyArgSize
+    jae _quit
+
+    mov byte [rdi + r8], '0'
+
+    inc r8
+    jmp _fillBufferZero
 
 _itZero:
     mov byte [rdi], '0'
@@ -292,7 +300,7 @@ _assemblyMovArg:
     sub rsi, 6                          ;write the second argument in the right place, -3 to avoid writing over the first argument, and again -3 to write over it's 3 bit.
     call _assemblyMovArgReg
 
-    mov rax, [rsi]
+    mov rax, [rsp]
 
     add rsp, assemblyArgSize            ;free the allocated memory
 
