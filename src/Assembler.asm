@@ -180,7 +180,7 @@ _assemblyImArg:
     call _nbToBin
 
     ;store the binary code in rax
-    mov rax, [rdi - 8]
+    mov rax, [rsp]
 
     ;free the allocated memory
     add rsp, assemblyArgSize

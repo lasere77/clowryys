@@ -27,15 +27,26 @@ section .data
     errorInvalidReg db "error: invalid register", 10, 0
     errorInvalidRegLen equ $-errorInvalidReg
 
+    errorCreatFile db "error: impossible to create a file here", 10, 0
+    errorCreatFileLen equ $-errorCreatFile
+
+    outputFileName db "binary.navo", 0
+
     ;const
-    bufferSize equ 1024      ;1024 for the moment to be modified in the future
+    bufferSize equ 1024       ;1024 for the moment to be modified in the future
     currentLineSize equ 16
-    nbOfCharSize equ 2*4+8   ;2*4 for the array and add 8 to align the stack
+    currentLineBinSize equ 16 
+    nbOfCharSize equ 2*4+8    ;2*4 for the array and add 8 to align the stack
     assemblyArgSize equ 8 
+    assemblyLinSize equ 9     ;1 byte for the space and 8 bytes for the bin
 
 section .bss
     buffer resb bufferSize
+    outputFileDescriptor resq 1
 
+;
+;add a label and more pressure for error messages (line errors)
+;
 section .text
 _start:
     mov rax, 1
@@ -45,14 +56,25 @@ _start:
     syscall
 
     ;openFile with argv[1]
-    call _openFile
+    call _openInuputFile
 
     ;check if the file is correctly opened
     cmp rax, 0
-    jl _errorFilePath
+    jl _errorInputFilePath
     
-    call _readFile
-    call _closeFile
+    ;move file descriptor to r15
+    mov r15, rax
+
+    call _readInputFile
+    call _closeInputFile
+
+    ;creat and open output file
+    call _openOutputFile
+    cmp rax, 0
+    jl _errorOutputFile
+
+    ;move file descriptor to outputFileDescriptor
+    mov [outputFileDescriptor], rax
 
     ;buffer for countain currenteline
     ;stores the line who need to transcode in to binary, 16 byte was allocated
@@ -122,9 +144,28 @@ _assemblyLineWithThreeArg:
     cmp r8, IDMov
     je _assemblyMovArg
 
-    jmp _writeBinary
+    ;exit with an error if the instruction was not referenced, the program should have aborted before this happened...
+    jmp _UnknownInstruction
 
 _writeBinary:
+    sub rsp, currentLineBinSize
+
+    lea rdi, [rsp]
+    mov rsi, 16
+    xor r8, r8
+    call _cleanBuffer
+
+    mov byte [rsp], 32              ;put space before the binary line
+    mov [rsp + 1], rax              ;put a binary line, [rsp + 1] to avoid deleting the space
+
+    lea rsi, [rsp]
+    mov rax, 1
+    mov rdi, [outputFileDescriptor]
+    mov rdx, assemblyLinSize
+    syscall
+
+    add rsp, currentLineBinSize
+
     jmp _mainLoop
 
 
@@ -163,12 +204,16 @@ _exitError:
     ;remove local var of the main fonction
     add rsp, currentLineSize + nbOfCharSize
 
+    call _closeOutputFile
+
     mov rax, 60
     mov rdi, 1
     syscall
 
 _exit:
     add rsp, currentLineSize + nbOfCharSize
+
+    call _closeOutputFile
 
     mov rax, 60
     xor rdi, rdi
