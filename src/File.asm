@@ -28,7 +28,7 @@ _errorInputFilePath:
     mov rax, 1
     mov rdi, 1
     mov rsi, errorFilePath
-    mov rdx, errorFilePathLen
+    mov rdx, errorFilePathLen - 1
     syscall
 
     ;quit prog!!!

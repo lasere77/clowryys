@@ -260,9 +260,11 @@ _errorNbTooLarge:
     mov rax, 1
     mov rdi, 1
     mov rsi, errorNbTooLarge
-    mov rdx, errorNbTooLargelen
+    mov rdx, errorNbTooLargelen - 1
     syscall
     
+    call _printSrcLineError
+
     ;give the first arg of _exitError
     mov rdi, 8
     jmp _exitError
@@ -327,12 +329,17 @@ _assemblyMovArgReg:
     cmp al, 'x'
     je _assemblyRegX
 
+    ;jump to message error
+    jmp _argLengthError
+
 _argLengthError:
     mov rax, 1 
     mov rdi, 1 
     mov rsi, errorInvalidReg 
     mov rdx, errorInvalidRegLen 
     syscall
+
+    call _printSrcLineError
 
     mov rdi, 16                         ;save of rbp and rdi
     jmp _exitError

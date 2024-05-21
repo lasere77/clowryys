@@ -9,8 +9,8 @@ global _start
 
 section .data
     ;message
-    hello db "start cloryys...", 10, 0
-    helloLen equ $-hello
+    successfully db "successfully assembled.", 10, 0
+    successfullyLen equ $-successfully
 
     errorFilePath db "error: please check if the file path is correct", 10, 0
     errorFilePathLen equ $-errorFilePath
@@ -30,31 +30,32 @@ section .data
     errorCreatFile db "error: impossible to create a file here", 10, 0
     errorCreatFileLen equ $-errorCreatFile
 
+    errorLineError db "error: can't print the line how you have an error...", 10
+    errorLineErrorLen equ $-errorLineError
+
+    errorPlsGetLine db "please check the line -> ", 0
+    errorPlsGetLineLen equ $-errorPlsGetLine
+
     outputFileName db "binary.navo", 0
 
-    ;const
+    ;const buffer size
     bufferSize equ 1024       ;1024 for the moment to be modified in the future
     currentLineSize equ 16
     currentLineBinSize equ 16 
     nbOfCharSize equ 2*4+8    ;2*4 for the array and add 8 to align the stack
     assemblyArgSize equ 8 
     assemblyLinSize equ 9     ;1 byte for the space and 8 bytes for the bin
+    intToCharSize equ 8       
 
 section .bss
     buffer resb bufferSize
     outputFileDescriptor resq 1
 
 ;
-;add a label and more pressure for error messages (line errors)
+;add a label
 ;
 section .text
 _start:
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, hello
-    mov rdx, helloLen
-    syscall
-
     ;openFile with argv[1]
     call _openInuputFile
 
@@ -87,7 +88,8 @@ _start:
     jmp _mainLoop
 
 
-
+;r15 = ptr for buffer
+;r14 = line storyteller for input file
 _mainLoop:
     mov r9, [r15]
     cmp r9, 0      ;check if it end of file with the null byte
@@ -103,7 +105,10 @@ _mainLoop:
     mov rdi, r15
     lea rsi, [rsp + 16]
     call _storeCurrentLine
+    ;move rax(buffer - curentLine) to r15
     mov r15, rax
+    ;inc line storyteller
+    inc r14
     ;if r8 = 0 nothing are store so you can passe to the next line
     cmp r8, 0
     je _mainLoop
@@ -182,6 +187,79 @@ _cleanBuffer:
     add r8, 8
     jmp _cleanBuffer
 
+_printSrcLineError:
+    push rbp
+    mov rbp, rsp
+
+    ;print epilogue
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, errorPlsGetLine
+    mov rdx, errorPlsGetLineLen - 1
+    syscall
+
+    sub rsp, intToCharSize
+    ;set the value of the buffe with null Bytes
+    mov qword [rsp], 0
+
+    ;convert int to str
+    lea rdi, [rsp]
+    mov rax, r14
+    mov r9, 10
+    mov r8, -1                  ;set r8 to -1 to use all the byte you can use
+    call _srcLineErrorItoa
+
+    ;move the last Byte to \n
+    mov byte [rsp + intToCharSize - 1], 10
+
+    ;calculates the correct length and position of the ptr and write on the console the line error
+    neg r8          ;set r8 positif
+    mov rdx, r8     ;move to rdx the nomber of char was store in the buffer
+    neg r8          ;set r8 to negative
+    add r8, 8       ;add 8 to r8 to find the good position for the buffer, this have for consequance to avoid to write the null bytes
+    add rdi, r8     ;set the good position for the ptr
+    mov rsi, rdi    ;mov rsi as a ptr for the buffer
+    mov rdi, 1
+    mov rax, 1
+    syscall
+
+    add rsp, intToCharSize  ;free the allocated memory
+
+    mov rsp, rbp
+    pop rbp
+    ret
+
+_srcLineErrorItoa:
+    cmp rax, 0
+    je _quit
+    ;to avoid the overflow
+    cmp r8, -intToCharSize
+    jle _errorPrintSrcLineError         ;jlE e to avoid to write on the last Byte
+
+    ;div by 10 to passe to the next digit
+    xor rdx, rdx
+    div r9
+    ;convert the current digit
+    add dl, 48
+    ;move the character in the buffer (reverse writing)
+    mov [rdi + 7 + r8], dl
+
+    ;update the buffer ptr
+    dec r8
+    jmp _srcLineErrorItoa
+
+
+_errorPrintSrcLineError:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, errorLineError
+    mov rdx, errorLineErrorLen - 1
+    syscall 
+
+    ;buffer(8), stack frame(8) + return addr(16) = 32
+    mov rdi, 32
+    jmp _exitError
+
 _quit:
     ret
 
@@ -189,8 +267,10 @@ _UnknownInstruction:
     mov rax, 1
     mov rdi, 1
     mov rsi, errorUnknownInstruction
-    mov rdx, errorUnknownInstructionLen
+    mov rdx, errorUnknownInstructionLen - 1
     syscall
+
+    call _printSrcLineError
 
     xor rdi, rdi
     jmp _exitError
@@ -214,6 +294,12 @@ _exit:
     add rsp, currentLineSize + nbOfCharSize
 
     call _closeOutputFile
+
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, successfully
+    mov rdx, successfullyLen - 1
+    syscall
 
     mov rax, 60
     xor rdi, rdi
