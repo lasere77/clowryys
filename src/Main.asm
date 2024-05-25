@@ -36,10 +36,12 @@ section .data
     errorPlsGetLine db "please check the line -> ", 0
     errorPlsGetLineLen equ $-errorPlsGetLine
 
+    errorFstat db "error: sys_fstat...", 10, 0
+    errorFstatLen equ $-errorFstat
+
     outputFileName db "binary.navo", 0
 
     ;const buffer size
-    bufferSize equ 1024       ;1024 for the moment to be modified in the future
     currentLineSize equ 16
     currentLineBinSize equ 16 
     nbOfCharSize equ 2*4+8    ;2*4 for the array and add 8 to align the stack
@@ -48,11 +50,10 @@ section .data
     intToCharSize equ 8       
 
 section .bss
-    buffer resb bufferSize
     outputFileDescriptor resq 1
 
 ;
-;add a label
+;add a label, dynamique memory
 ;
 section .text
 _start:
@@ -66,7 +67,9 @@ _start:
     ;move file descriptor to r15
     mov r15, rax
 
+    ;return r13 == the addr of the buffer where the file contents are stored
     call _readInputFile
+    ;close the file after read it
     call _closeInputFile
 
     ;creat and open output file
@@ -84,7 +87,7 @@ _start:
     ;allocate memory to store nb of arg are in currentLine and nb of char for each arg
     sub rsp, nbOfCharSize
 
-    mov r15, buffer
+    mov r15, r13
     jmp _mainLoop
 
 
