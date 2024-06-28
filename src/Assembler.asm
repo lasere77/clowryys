@@ -41,7 +41,7 @@ _instructionWithTowChar:       ;compares with 2 character instructions
     rep cmpsb
     je _assemblyJlInstruction
 
-    jmp _instructionNotExist
+    jmp _cantAssembly
 
 _instructionWithThreeChar:          ;compares with 3 character instructions
     lea rdi, [rsp + 16 + 8]
@@ -100,7 +100,7 @@ _instructionWithThreeChar:          ;compares with 3 character instructions
     je _assemblyNopInstruction
 
 
-    jmp _instructionNotExist
+    jmp _cantAssembly
 
 
 _instructionWithFourChar:
@@ -110,7 +110,7 @@ _instructionWithFourChar:
     rep cmpsb
     je _assemblyNandInstruction
 
-    jmp _instructionNotExist
+    jmp _cantAssembly
 
 
 _instructionWithFiveChar:          ;compares with 5 character instructions
@@ -120,7 +120,7 @@ _instructionWithFiveChar:          ;compares with 5 character instructions
     rep cmpsb
     je _assemblyNeverInstruction
 
-    jmp _instructionNotExist
+    jmp _cantAssembly
 
 _instructionWithSixChar:          ;compares with 6 character instructions
     lea rdi, [rsp + 16 + 8]
@@ -129,9 +129,9 @@ _instructionWithSixChar:          ;compares with 6 character instructions
     rep cmpsb
     je _assemblyAlwaysInstruction
 
-    jmp _instructionNotExist
+    jmp _cantAssembly
 
-_instructionNotExist:
+_cantAssembly:
     mov rax, -1         ;return -1 it mean the instruction of currentline not exist
     ret
 
@@ -140,13 +140,13 @@ _instructionNotExist:
 ;r8 second return value, it contain the id of the instruction was assembly
 ;rax return the assembly line
 ;if all is well, rdi containe current line without the instruction
-_assemblyInstruction:
+_assembly:
     xor r8, r8
     ;switch statment
     mov rcx, rdi
     sub rcx, 2                      ;sub the value of the start (2) to set the firt index at 0
     cmp rcx, 4                      ;cmp with the total nb of case
-    jae _instructionNotExist        ;if the index is hender the jmpTable jmp to _instructionNotExist
+    jae _cantAssembly               ;if the index is hender the jmpTable jmp to _cantAssembly
 
     jmp [jmp_table + rcx * 8]
 

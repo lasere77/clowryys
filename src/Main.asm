@@ -47,16 +47,22 @@ section .data
     nbOfCharSize equ 2*4+8    ;2*4 for the array and add 8 to align the stack
     assemblyArgSize equ 8 
     assemblyLinSize equ 9     ;1 byte for the space and 8 bytes for the bin
-    intToCharSize equ 8       
+    intToCharSize equ 8
 
 section .bss
     outputFileDescriptor resq 1
+    InputFileDescriptor resq 1
+    origineHeap resq 1              ;store the orgine addr of the heap (start of addr for src file)
+    endHeapSrcFile resq 1           ;store the start addr of the heap after allocate the space to store the source file (end of addr for src file and start of addr to store the labels)
+    endHeap resq 1                  ;store the end addr of the heap (end of addr for labels)
 
 ;
-;add a label, dynamique memory
+;add a label
 ;
 section .text
 _start:
+    ;this is essential for using dynamic memory
+    call _initDynamicMem
     ;openFile with argv[1]
     call _openInuputFile
 
@@ -64,12 +70,12 @@ _start:
     cmp rax, 0
     jl _errorInputFilePath
     
-    ;move file descriptor to r15
-    mov r15, rax
+    ;move file descriptor to InputFileDescriptor
+    mov [InputFileDescriptor], rax
 
-    ;return r13 == the addr of the buffer where the file contents are stored
+    ;store the input file on the heap
     call _readInputFile
-    ;close the file after read it
+    ;close the input file after read/store it
     call _closeInputFile
 
     ;creat and open output file
@@ -80,22 +86,19 @@ _start:
     ;move file descriptor to outputFileDescriptor
     mov [outputFileDescriptor], rax
 
-    ;buffer for countain currenteline
-    ;stores the line who need to transcode in to binary, 16 byte was allocated
-    sub rsp, currentLineSize
-    lea rax, [rsp]
-    ;allocate memory to store nb of arg are in currentLine and nb of char for each arg
-    sub rsp, nbOfCharSize
+    ;allocate memory to store the currenteline and to store nb of arg are in currentLine and nb of char for each arg
+    sub rsp, currentLineSize + nbOfCharSize
 
-    mov r15, r13
+    ;move the address where the input file was stored to r15
+    mov r15, [origineHeap]
     jmp _mainLoop
 
 
 ;r15 = ptr for buffer
 ;r14 = line storyteller for input file
 _mainLoop:
-    mov r9, [r15]
-    cmp r9, 0      ;check if it end of file with the null byte
+    mov r9b, byte [r15]
+    cmp r9, 0              ;check if it end of file with the null byte
     je _exit
 
     ;clean the tow buffer currentLine and nbOfCharSize
@@ -124,8 +127,8 @@ _mainLoop:
 
     ;transcode the instruction of currentLine
     movzx rdi, word [rsp + 8 + 2]          ;gives the number of characters in the current instruction
-    call _assemblyInstruction
-    ;check if the current line contains the correct instruction if not, exit the program with error code
+    call _assembly
+    ;check if the current line contains an instruction if not, exit the program with an error code
     cmp rax, -1
     je _UnknownInstruction
 
@@ -262,6 +265,16 @@ _errorPrintSrcLineError:
     ;buffer(8), stack frame(8) + return addr(16) = 32
     mov rdi, 32
     jmp _exitError
+
+
+;store the original addrese of the heap in origineHeap var
+_initDynamicMem:
+    mov rax, 12
+    xor rdi, rdi
+    syscall                     ;get the original addr of brk
+
+    mov [origineHeap], rax      ;store it in the var
+    ret
 
 _quit:
     ret
