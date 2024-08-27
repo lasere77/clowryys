@@ -65,6 +65,8 @@ _allocateMemoryForFile:
     mov rax, 12
     syscall                ;allocate memory
 
+    mov [endHeapSrcFile], rax
+
     ret
 
 

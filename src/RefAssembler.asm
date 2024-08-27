@@ -51,6 +51,10 @@ section .data
     nopInstruction db "nop", 0
     nopInstructionLen equ $-nopInstruction
 
+    ;charge label
+    zxPrefix db "zx", 0
+    zxPrefixLen equ $-zxPrefix
+
     ;const ID instruction
     IDIm equ 0
     IDOr equ 1
@@ -69,6 +73,7 @@ section .data
     IDNand equ 14
     IDNever equ 15
     IDAlways equ 16
+    IDZx equ 17
 
 
 section .text
@@ -142,6 +147,26 @@ _assemblyNopInstruction:
     mov r8, IDNop
     ret
 
+_chargeZxPrefix:
+    push rbp
+    mov rbp, rsp
+
+    cmp word [rbp + 24], 2          ;see if there's only one argument
+    jne _errorLabelSpace
+
+    inc rdi                          ;inc rdi ptr to remove the space
+
+    mov rsi, rdi
+    mov rax, [endHeapSrcFile]
+    call _checkCorrespondingLabels
+
+    mov r8, IDZx
+
+    mov rsp, rbp
+    pop rbp
+    ret
+
+
 ;------------------------------------------------------------------------
 
 _assemblyRegA:
@@ -193,4 +218,3 @@ _assemblyRegX:
     inc rsi
     mov byte [rsi], "1"
     ret
-

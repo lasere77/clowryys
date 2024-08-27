@@ -41,6 +41,12 @@ _instructionWithTowChar:       ;compares with 2 character instructions
     rep cmpsb
     je _assemblyJlInstruction
 
+    lea rdi, [rsp + 16 + 8]
+    lea rsi, [zxPrefix]
+    mov rcx, zxPrefixLen-1
+    rep cmpsb
+    je _chargeZxPrefix
+
     jmp _cantAssembly
 
 _instructionWithThreeChar:          ;compares with 3 character instructions
@@ -140,7 +146,7 @@ _cantAssembly:
 ;r8 second return value, it contain the id of the instruction was assembly
 ;rax return the assembly line
 ;if all is well, rdi containe current line without the instruction
-_assembly:
+_instructionLabelHandler:
     xor r8, r8
     ;switch statment
     mov rcx, rdi
@@ -268,8 +274,47 @@ _errorNbTooLarge:
     ;give the first arg of _exitError
     mov rdi, 8
     jmp _exitError
+;------------------------------------------------------------------
+_replaceLabelToAddr:
+    push rbp
+    mov rbp, rsp
+
+    cmp rax, 255
+    ja _errorNbTooLargeLabel
+
+    ;allocate memory to store the binary in ascii 8 byte for the binary and 8 byte for the allignement and fill buffer with "0"
+    sub rsp, assemblyArgSize
+    lea rdi, [rsp]
+    xor r8, r8
+    call _fillBufferZero
+
+    lea rdi, [rsp]
+    mov rsi, 128                ;128 to use 8 bits
+    call _nbToBin
+
+    ;store the binary code in rax
+    mov rax, [rsp]
+
+    ;free the allocated memory
+    add rsp, assemblyArgSize
+
+    mov rsp, rbp
+    pop rbp
+    jmp _writeBinary
 
 
+
+_errorNbTooLargeLabel:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, errorNbTooLargeLabel
+    mov rdx, errorNbTooLargeLabelLen - 1
+    syscall 
+
+    call _printSrcLineError
+
+    mov rdi, 16
+    call _exitError
 ;------------------------------------------------------------------
 
 

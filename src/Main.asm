@@ -2,6 +2,7 @@ bits 64
 global _start
 
 %include "./src/File.asm"
+%include "./src/Label.asm"
 %include "./src/ReadLine.asm"
 %include "./src/GetNbChar.asm"
 %include "./src/Assembler.asm"
@@ -39,6 +40,15 @@ section .data
     errorFstat db "error: sys_fstat...", 10, 0
     errorFstatLen equ $-errorFstat
 
+    errorLabelNotFound db "error: label not found", 10, 0
+    errorLabelNotFoundLen equ $-errorLabelNotFound
+    
+    errorLabelSpace db "error: you can't use space for the name of your label", 10, 0
+    errorLabelSpaceLen equ $-errorLabelSpace
+
+    errorNbTooLargeLabel db "error: the programme can only store 255 Byte. so you can't have more than 255 instruction"
+    errorNbTooLargeLabelLen equ $-errorNbTooLargeLabel
+
     outputFileName db "binary.navo", 0
 
     ;const buffer size
@@ -53,8 +63,8 @@ section .bss
     outputFileDescriptor resq 1
     InputFileDescriptor resq 1
     origineHeap resq 1              ;store the orgine addr of the heap (start of addr for src file)
-    endHeapSrcFile resq 1           ;store the start addr of the heap after allocate the space to store the source file (end of addr for src file and start of addr to store the labels)
-    endHeap resq 1                  ;store the end addr of the heap (end of addr for labels)
+    endHeapSrcFile resq 1           ;store the start addr of the heap after allocate the space to store the source file (end of addr for src file and start of addr to store the labels tab)
+    endHeapLabelTab resq 1          ;store the end addr of the labels tab(for each case 20 bytes is for the name of the label et 4 bytes for the position)
 
 ;
 ;add a label
@@ -88,6 +98,9 @@ _start:
 
     ;allocate memory to store the currenteline and to store nb of arg are in currentLine and nb of char for each arg
     sub rsp, currentLineSize + nbOfCharSize
+
+    ;init label (store on the heap the name and the positioon of label), returns the number of labels that have been loaded
+    call _initLabels
 
     ;move the address where the input file was stored to r15
     mov r15, [origineHeap]
@@ -125,11 +138,15 @@ _mainLoop:
     lea rdx, [rsp + 8]
     call _getNbCurrentLineArg
 
+    ;check if the currentLine is a declaration of a label
+    call _getIfItLabel
+    cmp r8, 1              ;if it a declaration of a label pass to ne next line
+    je _mainLoop
+
     ;transcode the instruction of currentLine
     movzx rdi, word [rsp + 8 + 2]          ;gives the number of characters in the current instruction
-    call _assembly
-    ;check if the current line contains an instruction if not, exit the program with an error code
-    cmp rax, -1
+    call _instructionLabelHandler
+    cmp rax, -1                 ;check if the current line contains an instruction if not, exit the program with an error code
     je _UnknownInstruction
 
     ;check if only the instruction assembly is required if this is true, write it to the binary file otherwise assemble the other arg in currentLine 
@@ -146,6 +163,9 @@ _assemblyLineWithTowArg:
     ;please do swith statment if you have more instruction here
     cmp r8, IDIm
     je _assemblyImArg
+
+    cmp r8, IDZx
+    je _replaceLabelToAddr
 
     ;exit with an error if the instruction was not referenced, the program should have aborted before this happened...
     jmp _UnknownInstruction
@@ -275,6 +295,15 @@ _initDynamicMem:
 
     mov [origineHeap], rax      ;store it in the var
     ret
+
+;rdi = string
+;please set rax to 0 befor call
+_strLen:
+    cmp byte [rdi + rax], 0
+    je _quit
+
+    inc rax
+    jmp _strLen
 
 _quit:
     ret

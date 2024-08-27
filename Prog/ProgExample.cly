@@ -1,21 +1,20 @@
-;make xor instruction 
-im 25
+startesse:
+im 10
 mov c, a
-im 19
+im 20
 mov d, a
+add
 
-nor
-mov x, r
+zx test
+jl
+zx sup
+jg
 
-and
-mov f, r
+test:
+im 50
 
-mov d, f
-mov c, x
-or
+sub:
+im 42
 
-mov c, r
-im 0
-mov d, a
-nor
-;the result is in the register r
+sup:
+im 63
