@@ -296,6 +296,14 @@ _initDynamicMem:
     mov [origineHeap], rax      ;store it in the var
     ret
 
+;releases the allocated memory that stored the input file and its labels. 
+_freeDynamicMem:
+    mov rax, 12
+    mov rdi, origineHeap
+    syscall
+    
+    ret
+
 ;rdi = string
 ;please set rax to 0 befor call
 _strLen:
@@ -330,6 +338,7 @@ _exitError:
     add rsp, currentLineSize + nbOfCharSize
 
     call _closeOutputFile
+    call _freeDynamicMem
 
     mov rax, 60
     mov rdi, 1
@@ -339,6 +348,7 @@ _exit:
     add rsp, currentLineSize + nbOfCharSize
 
     call _closeOutputFile
+    call _freeDynamicMem
 
     mov rax, 1
     mov rdi, 1
